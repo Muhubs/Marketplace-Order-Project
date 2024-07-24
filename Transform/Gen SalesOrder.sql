@@ -1,0 +1,54 @@
+PROCEDURE Gen_saleorder IS
+		TABNUM	VARCHAR2(10);
+			  V_DOC varchar2(50);
+			  cursor abc is
+			  SELECT PRCEST_NBR
+			    FROM SLE_PRICE_ESTIMATION
+			    WHERE PRCEST_DATE = TRUNC(SYSDATE)
+			      AND CREATED_BY IN ('100666')
+			      AND PRCEST_STATUS = 'OPEN'
+			    ORDER BY PRCEST_NBR;
+BEGIN
+			Begin
+        SELECT MIN(PRCEST_NBR) 
+        INTO V_DOC  
+        FROM SLE_PRICE_ESTIMATION
+        WHERE PRCEST_DATE = TRUNC(SYSDATE)  --TO_DATE('27/03/2563','DD/MM/RRRR')
+        AND CREATED_BY  = '100666'
+        AND PRCEST_STATUS = 'OPEN';
+      EXCEPTION WHEN NO_DATA_FOUND THEN  RAISE FORM_TRIGGER_FAILURE;
+        WHEN OTHERS THEN  RAISE FORM_TRIGGER_FAILURE;  
+      END;
+      	:SLE_SALES_ORDER.SALETYPE    := 'CREDIT';
+      	:SLE_SALES_ORDER.SLPRSN_CODE := '00666';  
+        :SLE_SALES_ORDER.REMIT_TYPE_CODE := 'CARD';
+        :SLE_SALES_ORDER.REQUIRE_DATE    := sysdate + 2;
+        :SLE_SALES_ORDER.ordertype    := 'N';
+        :SLE_SALES_ORDER.DLVMT_CODE := '005';
+        :SLE_SALES_ORDER.PRN_DISCOUNT := 'Y'; 
+        :SLE_SALES_ORDER.PRN_DISCOUNT := 'Y';
+        go_block('COPY'); 
+        go_item('SLE_SALES_ORDER.COPY');
+        execute_trigger('WHEN-BUTTON-PRESSED');
+        :copy.doctype := 'P';
+        :copy.DOC_NBR := V_DOC;
+        go_item('COPY.DOC_NBR');
+        execute_trigger('WHEN-BUTTON-PRESSED');
+				INSERT_DATA_TO_FORM.MAIN(:COPY.DOCTYPE,:COPY.DOC_NBR);
+				:COPY.DOC_NBR := null;
+				GO_BLOCK('SLE_SALES_ORDER_LINE');
+				FIRST_RECORD;
+				HIDE_WINDOW('WINDOW2');
+				TABNUM	:= GET_CANVAS_PROPERTY('TABPAGE', TOPMOST_TAB_PAGE);
+				IF TABNUM = 'PAGE3' THEN
+					 GO_BLOCK('SLE_SALES_ORDER_LINE');		
+				ELSE
+					 GO_BLOCK('SLE_SALES_ORDER');	
+				END IF;
+        SK_SAVE;
+        SK_NEW; 
+        for i in abc loop
+        GO_ITEM('SLE_SALES_ORDER.POK');
+        EXECUTE_TRIGGER('WHEN-BUTTON-PRESSED');
+        end loop;
+END;
